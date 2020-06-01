@@ -134,16 +134,19 @@ def get_sb(filename):
     # cuenta las lineas validas. cuando obtiene 3 devuelve el indice del byte
     validlines = 0
     ignore_line = 0
+    width = ""
     for idx, val in enumerate(open(filename, 'rb').read()):
+        if validlines == 1 and not ignore_line:
+            if val in range(48, 58) and len(width) != 3:
+                width += str(val-48)
         if validlines == 3:
-            return idx
+            return idx, int(width)
         if val == 35:
             ignore_line = 1
         elif ignore_line and val == 10:
             ignore_line = 0
         elif not ignore_line and val == 10:
             validlines += 1
-    return 15
 
 
 if __name__ == '__main__':
@@ -164,8 +167,9 @@ if __name__ == '__main__':
 
     # escribir header
     tiempo_inicial = time.time()
+    sb, width = get_sb(args.archivo)
     if not exitcode:
-        leido = os.read(fd, get_sb(args.archivo))
+        leido = os.read(fd, sb)
         exitcode = escribir_headers(args, leido, args.espejar)
 
     # escribir el resto
@@ -181,7 +185,6 @@ if __name__ == '__main__':
                              child_conns[color]))
         p.start()
         processes.append(p)
-    width=200
     # proceso que se dedica al espejado
     if args.espejar:
         p = mp.Process(target=espejar, args=(args.archivo, child_conns[3], width))
