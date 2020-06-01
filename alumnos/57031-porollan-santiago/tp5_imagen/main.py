@@ -11,6 +11,20 @@ def get_color(color):
         return "blue"
 
 
+def espejar(filename, conn):
+    x = 0
+    while 1:
+        data = conn.recv()
+        if x == 0:
+            print([i for i in data])
+            print(type(data))
+            print(data[0])
+        x+=1
+        if data == "stop":
+            break
+
+
+
 def procesar_imagen(filename, color, added, conn):
     # funcion target
     # se determinan los valores a escribir en la nueva imagen
@@ -27,7 +41,7 @@ def procesar_imagen(filename, color, added, conn):
         for color_value in leido:
             # escribir bytes de la nueva imagen. dependiendo del color suma el valor
             if count == color:
-                newl = color_value * added
+                newl = int(color_value * added)
                 newl = 255 if newl > 255 else newl
             else:
                 newl = 0
@@ -40,6 +54,7 @@ def procesar_imagen(filename, color, added, conn):
         with open(filename[:-4] + "_" + color_str + ".ppm", 'ab') as ni:
             ni.write(newimage)
         conn.send(count)
+    conn.send("Filtro " + get_color(color) + " finalizado con exito")
     #if leido:
     #    try:
             # se vuelve a ejecutar la misma funcion para que el proceso quede esperando
@@ -77,12 +92,14 @@ def get_arguments():
     parser.add_argument("-n", dest="tam", type=int, metavar="SIZE",
                         required=True, help="Tamaño del bloque de bytes",
                         default=256)
-    parser.add_argument("-r", dest="red", type=int, default=[25], metavar="RED",
+    parser.add_argument("-r", dest="red", type=float, default=[1.1], metavar="RED",
                         nargs=1, help="Valor color rojo")
-    parser.add_argument("-g", dest="green", type=int, default=[25], metavar="GREEN",
+    parser.add_argument("-g", dest="green", type=float, default=[1.1], metavar="GREEN",
                         nargs=1, help="Valor color verde")
-    parser.add_argument("-b", dest="blue", type=int, default=[25], metavar="BLUE",
+    parser.add_argument("-b", dest="blue", type=float, default=[1.1], metavar="BLUE",
                         nargs=1, help="Valor color azul")
+    parser.add_argument("-e", "--espejar", dest="espejar", action='store_true', default=False,
+                        help="Realizar espejado horizontal")
     return parser.parse_args()
 
 
@@ -111,11 +128,12 @@ if __name__ == '__main__':
         print("No se ha encontrado el archivo. Finalizar manualmente el programa")
     else:
         exitcode = 0
-    child_conns = [None, None, None]
-    parent_conns = [None, None, None]
+    child_conns = [None, None, None, None]
+    parent_conns = [None, None, None, None]
     parent_conns[0], child_conns[0] = mp.Pipe()
     parent_conns[1], child_conns[1] = mp.Pipe()
     parent_conns[2], child_conns[2] = mp.Pipe()
+    parent_conns[3], child_conns[3] = mp.Pipe()
 
     # escribir header
     tiempo_inicial = time.time()
@@ -135,6 +153,13 @@ if __name__ == '__main__':
                              child_conns[color]))
         p.start()
         processes.append(p)
+    
+    # proceso que se dedica al espejado
+    if args.espejar:
+        p = mp.Process(target=espejar, args=(args.archivo, child_conns[3]))
+        p.start()
+        processes.append(p)
+    
 
     while not exitcode and leido:
         # se lee el archivo y se mandan los datos a los hijos
@@ -144,21 +169,26 @@ if __name__ == '__main__':
             exitcode = 1
             print("Error de memoria")
             continue
-        
         for color in range(3):
             # se manda lo leido
             if leido:
                 parent_conns[color].send((leido, counts[color]))
+                if args.espejar and color == 0:
+                    parent_conns[3].send(leido)
             else:
                 parent_conns[color].send(("stop", counts[color]))
-        if not leido:
-            break
+                if color == 0:
+                    parent_conns[3].send("stop")
+                if color == 2:
+                    break
         for color in range(3):
             # se recibe la variable count
             # count puede tomar valores del 0 al 2 incluido
             # representa el ultimo color escrito por cada hijo
             try:
                 counts[color] = parent_conns[color].recv()
+                if type(counts[color]) is str:
+                    print(counts[color])
             except KeyboardInterrupt:
                 print("\nProceso Padre finalizado. Error con lectura de Pipe")
                 exit(1)
