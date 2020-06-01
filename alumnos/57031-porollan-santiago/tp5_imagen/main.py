@@ -9,19 +9,45 @@ def get_color(color):
         return "green"
     if color == 2:
         return "blue"
+    if color == 3:
+        return "espejado"
 
 
-def espejar(filename, conn):
-    x = 0
+def espejar(filename, conn, width=200):
+    width *= 3
+    # funcion target para el espejado
+    newimage_arr = []
+    lines=0
     while 1:
-        data = conn.recv()
-        if x == 0:
-            print([i for i in data])
-            print(type(data))
-            print(data[0])
-        x+=1
+        data, remainder = conn.recv()
         if data == "stop":
             break
+        data = list(data)
+        while data:
+            if remainder:
+                newline += data[:remainder]
+                L = len(data[:remainder])
+            else:
+                newline = data[remainder:width]
+                L = len(newline)
+            remainder = width - len(newline)
+            for _ in range(L):
+                data.pop(0)
+            if len(newline) == width:
+                linea_espejada = []
+                for idx in range(0, len(newline),3):
+                    linea_espejada.insert(0, newline[idx+2])
+                    linea_espejada.insert(0, newline[idx+1])
+                    linea_espejada.insert(0, newline[idx+0])
+
+                escribir_archivo(filename, "espejado", linea_espejada)
+                newimage_arr += newline
+                lines+=1
+                newline = []
+        conn.send(remainder)
+    print(lines)
+    conn.send("finalizado espejado con exito")
+        
 
 
 
@@ -49,10 +75,7 @@ def procesar_imagen(filename, color, added, conn):
             count += 1
             if count == 3:
                 count = 0
-        newimage = bytes(newimage_arr)
-        color_str = get_color(color)
-        with open(filename[:-4] + "_" + color_str + ".ppm", 'ab') as ni:
-            ni.write(newimage)
+        escribir_archivo(filename, get_color(color), newimage_arr)
         conn.send(count)
     conn.send("Filtro " + get_color(color) + " finalizado con exito")
     #if leido:
@@ -63,12 +86,16 @@ def procesar_imagen(filename, color, added, conn):
     #        print("Error. Buffer muy pequeño. Finalizar manualmente el programa")
     #        exit(1)
 
+def escribir_archivo(filename, descr, newimage_arr):
+    with open(filename[:-4] + "_" + descr + ".ppm", 'ab') as ni:
+        ni.write(bytes(newimage_arr))
 
-def escribir_headers(args, leido):
+def escribir_headers(args, leido, espejado):
     # genera 3 procesos. se crean los archivos con sus headers para cada color
     processes = []
     exitcode = 0
-    for color in range(3):
+    espejado = 1 if espejado else 0
+    for color in range(3 + espejado):
         p = mp.Process(target=escribir_header, args=(args.archivo,
                                                      leido, color))
         p.start()
@@ -139,11 +166,12 @@ if __name__ == '__main__':
     tiempo_inicial = time.time()
     if not exitcode:
         leido = os.read(fd, get_sb(args.archivo))
-        exitcode = escribir_headers(args, leido)
+        exitcode = escribir_headers(args, leido, args.espejar)
 
     # escribir el resto
     colors = [args.red[0], args.green[0], args.blue[0]]
-    counts = [0, 0, 0]
+    espejado_int = 1 if args.espejar else 0
+    counts = [0 for _ in range(3 + espejado_int)]
     processes = []
 
     for color in range(3):
@@ -153,14 +181,13 @@ if __name__ == '__main__':
                              child_conns[color]))
         p.start()
         processes.append(p)
-    
+    width=200
     # proceso que se dedica al espejado
     if args.espejar:
-        p = mp.Process(target=espejar, args=(args.archivo, child_conns[3]))
+        p = mp.Process(target=espejar, args=(args.archivo, child_conns[3], width))
         p.start()
         processes.append(p)
     
-
     while not exitcode and leido:
         # se lee el archivo y se mandan los datos a los hijos
         try:
@@ -174,14 +201,14 @@ if __name__ == '__main__':
             if leido:
                 parent_conns[color].send((leido, counts[color]))
                 if args.espejar and color == 0:
-                    parent_conns[3].send(leido)
+                    parent_conns[3].send((leido, counts[3]))
             else:
                 parent_conns[color].send(("stop", counts[color]))
-                if color == 0:
-                    parent_conns[3].send("stop")
+                if args.espejar and color == 0:
+                    parent_conns[3].send(("stop", counts[3]))
                 if color == 2:
                     break
-        for color in range(3):
+        for color in range(3 + espejado_int):
             # se recibe la variable count
             # count puede tomar valores del 0 al 2 incluido
             # representa el ultimo color escrito por cada hijo
