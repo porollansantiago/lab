@@ -3,10 +3,6 @@ from steganography.prep import get_msg, get_header_info
 from steganography.encode import *
 
 read = 1
-counter = 0
-a = 0
-b = 0
-c = 0
 
 def get_args():
     parser = argparse.ArgumentParser(description="message-image encoding")
@@ -30,7 +26,7 @@ def send_data(x, conn, sem, semp):
     while True:
         sem.acquire(1)
         conn.send(read)
-        print("xd ", x, "read: ", read)
+        print("thread ", x, "read: ", read)
         while 1:
             try:
                 semp.release()
@@ -96,31 +92,29 @@ def threading_and_sem():
         print('######################')
 
 
-def serie():
-    data = [x for x in range(16000)]
-    ind = 0
-    while 1:
-        try:
-            read = data[ind]
-        except:
-            break
-        ind+=1
-        
+def serie(fd, size):
+    read = 1
+    while read:
+        read = os.read(fd, size)
         for x in range(3):
-            print("thread", x, "read", read)
-            parent_conns[x].send(read)
-        print('########################')
+            if read:
+                parent_conns[x].send(read)
+            else:
+                parent_conns[x].send("stop")
 
 
 if __name__ == '__main__':
     start = time.time()
     args = get_args()
     fd = os.open(args.fn_img, os.O_RDONLY)
-    msg, L_TOTAL = get_msg(args.fn_msg)
+    msg, L = get_msg(args.fn_msg)
     header_info = get_header_info(args.fn_img, args.offset, args.interleave)
     create_file(args.fn_img, args.fn_out, header_info[0], fd)
-    processes, parent_conns = create_processes(args.fn_out, header_info)
-    threading_and_sem()
+    processes, parent_conns = create_processes(args.fn_out, header_info, msg, L)
+    # threading_and_sem()
+    serie(fd, args.size)
+    for p in processes:
+        p.join()
     print("benchmark: ", time.time()-start)
 
 
