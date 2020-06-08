@@ -96,6 +96,22 @@ def threading_and_sem():
         print('######################')
 
 
+def serie():
+    data = [x for x in range(16000)]
+    ind = 0
+    while 1:
+        try:
+            read = data[ind]
+        except:
+            break
+        ind+=1
+        
+        for x in range(3):
+            print("thread", x, "read", read)
+            parent_conns[x].send(read)
+        print('########################')
+
+
 if __name__ == '__main__':
     start = time.time()
     args = get_args()
@@ -105,7 +121,6 @@ if __name__ == '__main__':
     create_file(args.fn_img, args.fn_out, header_info[0], fd)
     processes, parent_conns = create_processes(args.fn_out, header_info)
     threading_and_sem()
-
     print("benchmark: ", time.time()-start)
 
 
