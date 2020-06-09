@@ -29,29 +29,52 @@ def create_processes(filename, header_info, msg, L):
         processes.append(p)
     return processes, parent_conns
 
+def binaryToDecimal(binary): 
+    binary = int(binary)
+    binary1 = binary 
+    decimal, i, n = 0, 0, 0
+    while(binary != 0): 
+        dec = binary % 10
+        decimal = decimal + dec * pow(2, i) 
+        binary = binary//10
+        i += 1
+    return decimal
 
 def insert_into_file(filename, c, offset, interleave, conn, msg, sem, next_sem):
     counter = 0
+    pixel_counter = 0
+    msg_idx = 0
+    L = len(msg)
+    interleave_counter = interleave * 1
     if c != counter:
-        print(c, "bloqueado")
+        #print(c, "bloqueado")
         sem.acquire()
-        print(c, "continua")
+        #print(c, "continua")
         img = open('output/'+filename, 'ab')
     else:
         img = open('output/'+filename, 'ab')
     while True:
         read = conn.recv()
         if read != "stop":
-            print("holaaa", c)
             color_values = []
             for byte in read:
+                pixel_counter += 1
                 if counter == c:
+                    if pixel_counter > offset and msg_idx < L:
+                        interleave_counter -= 1
+                        if interleave_counter == 0:
+                            interleave_counter = interleave*1
+                            byte = list(format(byte, "08b"))
+                            byte[7] = msg[msg_idx]
+                            msg_idx += 1
+                            #print(byte)
+                            byte = binaryToDecimal("".join(byte))
                     color_values.append(byte)
                 counter += 1
                 if counter == 3:
                     counter = 0
             for color_value in color_values:
-                print(c, "escribe")
+                #print(c, "escribe")
                 img.write(bytes([color_value]))
                 img.flush()
                 # write(filename, [color_value])
@@ -61,11 +84,11 @@ def insert_into_file(filename, c, offset, interleave, conn, msg, sem, next_sem):
                     except ValueError:
                         pass
                     else:
-                        print("process",c,"libera",c+1)
+                        #print("process",c,"libera",c+1)
                         break
-                print(c,"bloqueado")
+                #print(c,"bloqueado")
                 sem.acquire()
-                print(c,"continua")
+                #print(c,"continua")
         else:
             next_sem.release()
             img.close()
