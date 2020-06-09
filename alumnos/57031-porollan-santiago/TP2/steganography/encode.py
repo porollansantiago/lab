@@ -2,10 +2,14 @@ import os, threading, time
 import multiprocessing as mp
 
 
-def create_file(filename, output_filename, sb, fd):
+def create_file(filename, output_filename, sb, fd, offset, interleave):
     read = os.read(fd, sb)
+    first_line = list(bytes('# UMCOMPU2 ' + str(offset) + " " + str(interleave) + "\n", encoding='utf=8'))
+    read = list(read)
+    for byte in first_line[::-1]:
+        read.insert(3, byte)
     with open('output/'+output_filename, 'wb') as ni:
-        ni.write(bytes(list(read)))
+        ni.write(bytes(read))
 
 
 def create_processes(filename, header_info, msg, L):

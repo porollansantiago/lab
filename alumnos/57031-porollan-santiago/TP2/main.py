@@ -109,7 +109,7 @@ if __name__ == '__main__':
     fd = os.open(args.fn_img, os.O_RDONLY)
     msg, L = get_msg(args.fn_msg)
     header_info = get_header_info(args.fn_img, args.offset, args.interleave)
-    create_file(args.fn_img, args.fn_out, header_info[0], fd)
+    create_file(args.fn_img, args.fn_out, header_info[0], fd, header_info[2], header_info[3])
     processes, parent_conns = create_processes(args.fn_out, header_info, msg, L)
     # threading_and_sem()
     serie(fd, args.size)
