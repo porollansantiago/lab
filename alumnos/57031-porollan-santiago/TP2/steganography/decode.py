@@ -15,10 +15,14 @@ def create_processes(filename, offset, interleave, L):
 
 def get_msg(conn, filename, c, offset, interleave, L):
     pixel_counter = 0
+    if c != 2:
+        L = (8 * L) // 3
+    else:
+        L = ((8 * L) // 3) + L % 8
     counter = 0
     msg = ""
     interleave_counter = interleave * 1
-    while len(msg) < (L * 8) // 3:
+    while len(msg) < L:
         read = conn.recv()
         if read != 'stop':
             for byte in read:
@@ -41,8 +45,7 @@ def get_msg(conn, filename, c, offset, interleave, L):
                     counter = 0
         else:
             break
-    if c == 0:
-        print(msg)
+    print(msg)
 
 
 def text_from_bits(bits, encoding='utf-8', errors='surrogatepass'):
