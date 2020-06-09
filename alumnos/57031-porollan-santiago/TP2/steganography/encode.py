@@ -2,16 +2,6 @@ import os, threading, time
 import multiprocessing as mp
 
 
-def create_file(filename, output_filename, sb, fd, offset, interleave):
-    read = os.read(fd, sb)
-    first_line = list(bytes('#UMCOMPU2 ' + str(offset) + " " + str(interleave) + "\n", encoding='utf=8'))
-    read = list(read)
-    for byte in first_line[::-1]:
-        read.insert(3, byte)
-    with open('output/'+output_filename, 'wb') as ni:
-        ni.write(bytes(read))
-
-
 def create_processes(filename, header_info, msg, L):
     offset, interleave = header_info[2], header_info[3]
     processes = []
@@ -33,15 +23,16 @@ def create_processes(filename, header_info, msg, L):
         processes.append(p)
     return processes, parent_conns
 
-def binaryToDecimal(binary): 
-    binary = int(binary)
-    decimal, i = 0, 0
-    while(binary != 0): 
-        dec = binary % 10
-        decimal = decimal + dec * pow(2, i) 
-        binary = binary//10
-        i += 1
-    return decimal
+
+def create_file(filename, output_filename, sb, fd, offset, interleave):
+    read = os.read(fd, sb)
+    first_line = list(bytes('#UMCOMPU2 ' + str(offset) + " " + str(interleave) + "\n", encoding='utf=8'))
+    read = list(read)
+    for byte in first_line[::-1]:
+        read.insert(3, byte)
+    with open('output/'+output_filename, 'wb') as ni:
+        ni.write(bytes(read))
+
 
 def insert_into_file(filename, c, offset, interleave, conn, msg, sem, next_sem):
     counter = 0
@@ -84,6 +75,7 @@ def insert_into_byte(byte, msg, msg_idx):
     byte[7] = msg[msg_idx]
     return binaryToDecimal("".join(byte))
 
+
 def release_sem(sem, c):
     while True:
         try:
@@ -93,6 +85,13 @@ def release_sem(sem, c):
         else:
             break
 
-def write(filename, newimage_arr):
-    with open('output/'+filename, 'ab') as ni:
-        ni.write(bytes(newimage_arr))
+
+def binaryToDecimal(binary): 
+    binary = int(binary)
+    decimal, i = 0, 0
+    while(binary != 0): 
+        dec = binary % 10
+        decimal = decimal + dec * pow(2, i) 
+        binary = binary//10
+        i += 1
+    return decimal
