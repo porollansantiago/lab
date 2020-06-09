@@ -14,7 +14,7 @@ def convert_to_binary(s):
     return "".join([format(ord(c), "08b") for c in s])
 
 
-def get_header_info(filename, offset=0, interleave=0):
+def get_header_info(filename, offset=0, interleave=0, L=0):
     validlines = 0
     ignore_line = 0
     width = ""
@@ -22,7 +22,7 @@ def get_header_info(filename, offset=0, interleave=0):
     key = []
     msg_flag = 0
     umcompu2 = [35, 85, 77, 67, 79, 77, 80, 85, 50]
-    offset_interleave = ["", ""]
+    offset_interleave = ["", "", ""]
     oi_idx = -1
     fl = open(filename, 'rb')
     for idx, val in enumerate(fl.read()):
@@ -37,7 +37,9 @@ def get_header_info(filename, offset=0, interleave=0):
             fl.close()
             offset = offset_interleave[0] if offset_interleave[0] else offset
             interleave = offset_interleave[1] if offset_interleave[1] else interleave
-            return (idx, int(width), int(offset), int(interleave))
+            L = offset_interleave[2] if offset_interleave[2] else L
+            print(offset_interleave)
+            return (idx, int(width), int(offset), int(interleave), int(L))
         if val == 35:
             ignore_line = 1
         elif ignore_line and val == 10:

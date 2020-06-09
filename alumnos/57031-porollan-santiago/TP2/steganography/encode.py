@@ -24,9 +24,9 @@ def create_processes(filename, header_info, msg, L):
     return processes, parent_conns
 
 
-def create_file(filename, output_filename, sb, fd, offset, interleave):
+def create_file(filename, output_filename, sb, fd, offset, interleave, L):
     read = os.read(fd, sb)
-    first_line = list(bytes('#UMCOMPU2 ' + str(offset) + " " + str(interleave) + "\n", encoding='utf=8'))
+    first_line = list(bytes('#UMCOMPU2 ' + str(offset) + " " + str(interleave) + " " + str(L) + "\n", encoding='utf=8'))
     read = list(read)
     for byte in first_line[::-1]:
         read.insert(3, byte)
