@@ -55,7 +55,9 @@ def insert_into_file(filename, c, offset, interleave, conn, msg, sem, next_sem):
                         interleave_counter -= 1
                         if interleave_counter == 0:
                             interleave_counter = interleave*1
-                            byte = insert_into_byte(byte, msg, msg_idx)
+                            if c == 0:
+                                print(byte)
+                            byte = insert_into_byte(byte, msg, msg_idx, c)
                             msg_idx += 1
                     img.write(bytes([byte]))
                     img.flush()
@@ -70,9 +72,11 @@ def insert_into_file(filename, c, offset, interleave, conn, msg, sem, next_sem):
             break
 
 
-def insert_into_byte(byte, msg, msg_idx):
+def insert_into_byte(byte, msg, msg_idx, c):
     byte = list(format(byte, "08b"))
     byte[7] = msg[msg_idx]
+    if c == 0:
+        print(byte)
     return binaryToDecimal("".join(byte))
 
 

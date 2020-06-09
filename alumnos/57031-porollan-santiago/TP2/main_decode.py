@@ -17,7 +17,10 @@ if __name__ == '__main__':
     args = get_args()
     fd = os.open(args.fn_img, os.O_RDONLY)
     header_info = get_header_info(args.fn_img, args.offset, args.interleave)
-    processes, conns = create_processes(args.fn_img)
+    processes, conns = create_processes(args.fn_img, header_info[2], header_info[3], header_info[4])
+    header = os.read(fd, header_info[0])
+    with open('dummy.ppm', 'wb') as f:
+        f.write(header)
     while True:
         read = os.read(fd, args.size)
         if not read:

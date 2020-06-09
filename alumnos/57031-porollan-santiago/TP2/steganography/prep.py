@@ -38,7 +38,7 @@ def get_header_info(filename, offset=0, interleave=0, L=0):
             offset = offset_interleave[0] if offset_interleave[0] else offset
             interleave = offset_interleave[1] if offset_interleave[1] else interleave
             L = offset_interleave[2] if offset_interleave[2] else L
-            print(offset_interleave)
+            print(offset_interleave, L, idx)
             return (idx, int(width), int(offset), int(interleave), int(L))
         if val == 35:
             ignore_line = 1
