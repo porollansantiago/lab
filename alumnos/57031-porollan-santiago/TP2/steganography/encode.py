@@ -32,13 +32,14 @@ def create_processes(filename, header_info, msg, L):
 
 def insert_into_file(filename, c, offset, interleave, conn, msg, sem, next_sem):
     counter = 0
+    if c != counter:
+        print(c, "bloqueado")
+        sem.acquire()
+        print(c, "continua")
     while True:
         read = conn.recv()
         if read != "stop":
-            if c != counter:
-                print(c, "bloqueado")
-                sem.acquire()
-                print(c, "continua", read[0])
+            print("holaaa", c)
             color_values = []
             for byte in read:
                 if counter == c:
