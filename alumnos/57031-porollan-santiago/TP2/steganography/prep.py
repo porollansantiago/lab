@@ -28,9 +28,9 @@ def get_header_info(filename, offset=0, interleave=0):
     for idx, val in enumerate(fl.read()):
         if validlines == 1:
             if msg_flag:
-                get_offset_interleave(val, msg_flag, oi_idx, offset_interleave)
+                msg_flag, oi_idx= get_offset_interleave(val, msg_flag, oi_idx, offset_interleave)
             elif possible_msg:
-                check_if_msg(val, key, possible_msg, umcompu2, msg_flag)
+                possible_msg, msg_flag = check_if_msg(val, key, possible_msg, umcompu2, msg_flag)
             if not ignore_line and val in range(48, 58) and len(width) != 3:
                 width += str(val-48)
         if validlines == 3:
@@ -56,6 +56,7 @@ def get_offset_interleave(val, msg_flag, oi_idx, offset_interleave):
                 offset_interleave[oi_idx] += str(val-48)
             except IndexError:
                 msg_flag = 0
+        return msg_flag, oi_idx
 
 
 def check_if_msg(val, key, possible_msg, umcompu2, msg_flag):
@@ -64,3 +65,4 @@ def check_if_msg(val, key, possible_msg, umcompu2, msg_flag):
         possible_msg = 0
     elif len(umcompu2) == len(key):
         msg_flag = 1
+    return possible_msg, msg_flag
