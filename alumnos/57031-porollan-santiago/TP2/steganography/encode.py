@@ -36,6 +36,9 @@ def insert_into_file(filename, c, offset, interleave, conn, msg, sem, next_sem):
         print(c, "bloqueado")
         sem.acquire()
         print(c, "continua")
+        img = open('output/'+filename, 'ab')
+    else:
+        img = open('output/'+filename, 'ab')
     while True:
         read = conn.recv()
         if read != "stop":
@@ -49,7 +52,9 @@ def insert_into_file(filename, c, offset, interleave, conn, msg, sem, next_sem):
                     counter = 0
             for color_value in color_values:
                 print(c, "escribe")
-                write(filename, [color_value])
+                img.write(bytes([color_value]))
+                img.flush()
+                # write(filename, [color_value])
                 while True:
                     try:
                         next_sem.release()
@@ -63,6 +68,7 @@ def insert_into_file(filename, c, offset, interleave, conn, msg, sem, next_sem):
                 print(c,"continua")
         else:
             next_sem.release()
+            img.close()
             break
 
         
