@@ -35,8 +35,7 @@ def create_processes(filename, header_info, msg, L):
 
 def binaryToDecimal(binary): 
     binary = int(binary)
-    binary1 = binary 
-    decimal, i, n = 0, 0, 0
+    decimal, i = 0, 0
     while(binary != 0): 
         dec = binary % 10
         decimal = decimal + dec * pow(2, i) 
@@ -51,16 +50,13 @@ def insert_into_file(filename, c, offset, interleave, conn, msg, sem, next_sem):
     L = len(msg)
     interleave_counter = interleave * 1
     if c != counter:
-        #print(c, "bloqueado")
         sem.acquire()
-        #print(c, "continua")
         img = open('output/'+filename, 'ab')
     else:
         img = open('output/'+filename, 'ab')
     while True:
         read = conn.recv()
         if read != "stop":
-            color_values = []
             for byte in read:
                 pixel_counter += 1
                 if counter == c:
@@ -68,37 +64,34 @@ def insert_into_file(filename, c, offset, interleave, conn, msg, sem, next_sem):
                         interleave_counter -= 1
                         if interleave_counter == 0:
                             interleave_counter = interleave*1
-                            byte = list(format(byte, "08b"))
-                            byte[7] = msg[msg_idx]
+                            byte = insert_into_byte(byte, msg, msg_idx)
                             msg_idx += 1
-                            #print(byte)
-                            byte = binaryToDecimal("".join(byte))
-                    color_values.append(byte)
+                    img.write(bytes([byte]))
+                    img.flush()
+                    release_sem(next_sem, c)
+                    sem.acquire()
                 counter += 1
                 if counter == 3:
                     counter = 0
-            for color_value in color_values:
-                #print(c, "escribe")
-                img.write(bytes([color_value]))
-                img.flush()
-                # write(filename, [color_value])
-                while True:
-                    try:
-                        next_sem.release()
-                    except ValueError:
-                        pass
-                    else:
-                        #print("process",c,"libera",c+1)
-                        break
-                #print(c,"bloqueado")
-                sem.acquire()
-                #print(c,"continua")
         else:
             next_sem.release()
             img.close()
             break
 
-        
+
+def insert_into_byte(byte, msg, msg_idx):
+    byte = list(format(byte, "08b"))
+    byte[7] = msg[msg_idx]
+    return binaryToDecimal("".join(byte))
+
+def release_sem(sem, c):
+    while True:
+        try:
+            sem.release()
+        except ValueError:
+            pass
+        else:
+            break
 
 def write(filename, newimage_arr):
     with open('output/'+filename, 'ab') as ni:
