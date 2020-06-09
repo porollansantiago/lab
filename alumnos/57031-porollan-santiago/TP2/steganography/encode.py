@@ -4,7 +4,7 @@ import multiprocessing as mp
 
 def create_file(filename, output_filename, sb, fd, offset, interleave):
     read = os.read(fd, sb)
-    first_line = list(bytes('# UMCOMPU2 ' + str(offset) + " " + str(interleave) + "\n", encoding='utf=8'))
+    first_line = list(bytes('#UMCOMPU2 ' + str(offset) + " " + str(interleave) + "\n", encoding='utf=8'))
     read = list(read)
     for byte in first_line[::-1]:
         read.insert(3, byte)
