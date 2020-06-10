@@ -21,6 +21,9 @@ def get_header_info(filename, offset=0, interleave=0, L=0):
     validlines = 0
     ignore_line = 0
     width = ""
+    width_flag = 1
+    height_flag = 1
+    height = ""
     possible_msg = 1
     key = []
     msg_flag = 0
@@ -34,14 +37,20 @@ def get_header_info(filename, offset=0, interleave=0, L=0):
                 msg_flag, oi_idx= get_offset_interleave(val, msg_flag, oi_idx, offset_interleave)
             elif possible_msg:
                 possible_msg, msg_flag = check_if_msg(val, key, possible_msg, umcompu2, msg_flag)
-            if not ignore_line and val in range(48, 58) and len(width) != 3:
-                width += str(val-48)
+            if not ignore_line:
+                if val in range(48, 58):
+                    if width_flag:
+                        width += str(val-48)
+                    elif height_flag:
+                        height += str(val-48)
+                elif val == 32:
+                    width_flag = 0
         if validlines == 3:
             fl.close()
             offset = offset_interleave[0] if offset_interleave[0] else offset
             interleave = offset_interleave[1] if offset_interleave[1] else interleave
             L = offset_interleave[2] if offset_interleave[2] else L
-            return (idx, int(width), int(offset), int(interleave), int(L))
+            return (idx, int(width), int(offset), int(interleave), int(L), int(height))
         if val == 35:
             ignore_line = 1
         elif ignore_line and val == 10:
