@@ -18,7 +18,8 @@ def get_msg(conn, filename, c, offset, interleave, L):
     if c != 2:
         L = (8 * L) // 3
     else:
-        L = ((8 * L) // 3) + L % 8
+        L = ((8 * L) // 3) + L % 3
+    print(c,"L es",L)
     counter = 0
     msg = ""
     interleave_counter = interleave * 1
