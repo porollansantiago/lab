@@ -1,6 +1,7 @@
 import argparse, os, concurrent.futures, threading, time, random
 from steganography.prep import get_msg, get_header_info
 from steganography.encode import *
+from steganography.exceptions import *
 
 read = 1
 
@@ -106,13 +107,25 @@ def serie(fd, size):
 if __name__ == '__main__':
     start = time.time()
     args = get_args()
-    fd = os.open(args.fn_img, os.O_RDONLY)
-    msg, L = get_msg(args.fn_msg)
-    header_info = get_header_info(args.fn_img, args.offset, args.interleave, L)
-    create_file(args.fn_img, args.fn_out, header_info[0], fd, header_info[2], header_info[3], header_info[4])
-    processes, parent_conns = create_processes(args.fn_out, header_info, msg, L)
-    # threading_and_sem()
-    serie(fd, args.size)
-    for p in processes:
-        p.join()
-    print("benchmark: ", time.time()-start)
+    try:
+        fd = os.open(args.fn_img, os.O_RDONLY)
+        msg, L = get_msg(args.fn_msg)
+        header_info = get_header_info(args.fn_img, args.offset, args.interleave, L)
+        validate_interleave(header_info[0], header_info[1], header_info[5], header_info[2], header_info[3], header_info[4])
+        create_file(args.fn_img, args.fn_out, header_info[0], fd, header_info[2], header_info[3], header_info[4])
+        processes, parent_conns = create_processes(args.fn_out, header_info, msg, L)
+        serie(fd, args.size)
+        for p in processes:
+            p.join()
+    except FileNotFoundError:
+        print("Error. No se ha encontrado imagen:", args.fn_img)
+    except InterleaveError as exc:
+        print(exc)
+    except EmptyMsg as exc:
+        print(exc)
+    except MemoryError as exc:
+        print("Error de memoria")
+        for p in processes:
+            p.terminate()
+    else:
+        print("Terminado con exito en: ", time.time()-start, "segundos")

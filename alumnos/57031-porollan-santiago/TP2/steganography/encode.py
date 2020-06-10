@@ -1,5 +1,6 @@
 import os, threading, time
 import multiprocessing as mp
+from steganography.exceptions import InterleaveError
 
 
 def create_processes(filename, header_info, msg, L):
@@ -39,7 +40,7 @@ def insert_into_file(filename, c, offset, interleave, conn, msg, sem, next_sem):
     pixel_counter = 0
     msg_idx = 0
     L = len(msg)
-    interleave_counter = interleave * 1
+    interleave_counter = 1
     if c != counter:
         sem.acquire()
         img = open('output/'+filename, 'ab')
@@ -49,8 +50,8 @@ def insert_into_file(filename, c, offset, interleave, conn, msg, sem, next_sem):
         read = conn.recv()
         if read != "stop":
             for byte in read:
-                pixel_counter += 1
                 if counter == c:
+                    pixel_counter += 1
                     if pixel_counter > offset and msg_idx < L:
                         interleave_counter -= 1
                         if interleave_counter == 0:
@@ -95,3 +96,14 @@ def binaryToDecimal(binary):
         binary = binary//10
         i += 1
     return decimal
+
+
+def validate_interleave(sb, width, height, offset, interleave, L):
+    msg = sb + offset + interleave * L
+    av = (width * height) * 3 - interleave - offset - sb
+    print("espacio disponible:",av)
+    print("espacio requerido:",msg)
+    if msg <= av:
+        return True
+    raise(InterleaveError("Error. Revisar interleave"))
+    

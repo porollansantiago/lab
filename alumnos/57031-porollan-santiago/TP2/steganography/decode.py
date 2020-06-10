@@ -18,28 +18,26 @@ def get_msg(conn, filename, c, offset, interleave, L):
     if c != 2:
         L = L // 3
     else:
+        l = L // 3
         L = (L // 3) + L % 3
     counter = 0
     msg = ""
-    interleave_counter = interleave * 1
+    interleave_counter = 1
     while len(msg) < L:
         read = conn.recv()
-        if read != 'stop':
-            for byte in read:
+        for byte in read:
+            if counter == c:
                 pixel_counter += 1
-                if counter == c:
-                    if pixel_counter > offset:
-                        interleave_counter -= 1
-                        if interleave_counter == 0:
-                            interleave_counter = interleave * 1
-                            byte = list(format(byte, '08b'))
-                            msg += byte[7]
-                            if len(msg) == L:
-                                break
-                counter += 1
-                if counter == 3:
-                    counter = 0
-        else:
-            break
-    conn.recv()
-    conn.send(msg)
+                if pixel_counter > offset:
+                    interleave_counter -= 1
+                    if interleave_counter == 0:
+                        interleave_counter = interleave * 1
+                        byte = list(format(byte, '08b'))
+                        msg += byte[7]
+                        conn.send(byte[7])
+                        if len(msg) == L:
+                            break
+            counter += 1
+            if counter == 3:
+                counter = 0
+    conn.send('stop')

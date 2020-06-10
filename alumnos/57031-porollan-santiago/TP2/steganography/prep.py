@@ -1,8 +1,11 @@
+from steganography.exceptions import EmptyMsg, HeaderKey, InterleaveError
 
 
 def get_msg(filename):
     with open(filename, 'r') as fle:
         read = fle.read()
+    if not read:
+        raise EmptyMsg("Error. Mensaje vacío")
     print("guardando mensaje:")
     print('#######################################################')
     print(read)
@@ -47,10 +50,17 @@ def get_header_info(filename, offset=0, interleave=0, L=0):
                     width_flag = 0
         if validlines == 3:
             fl.close()
-            offset = offset_interleave[0] if offset_interleave[0] else offset
-            interleave = offset_interleave[1] if offset_interleave[1] else interleave
+            offset = int(offset_interleave[0]) if offset_interleave[0] else offset
+            interleave = int(offset_interleave[1]) if offset_interleave[1] else interleave
+            if interleave <= 0:
+                if interleave == -1:
+                    raise InterleaveError("Error. El archivo no contiene mensaje")
+                else:
+                    raise InterleaveError("Error. Revisar interleave")
+            if offset <= 0:
+                raise InterleaveError("Error. Revisar offset")
             L = offset_interleave[2] if offset_interleave[2] else L
-            return (idx, int(width), int(offset), int(interleave), int(L), int(height))
+            return (idx, int(width), offset, interleave, int(L), int(height))
         if val == 35:
             ignore_line = 1
         elif ignore_line and val == 10:

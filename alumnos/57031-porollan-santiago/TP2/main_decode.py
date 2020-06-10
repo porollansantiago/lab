@@ -1,6 +1,7 @@
 import argparse, os, time, binascii
 from steganography.prep import get_header_info
 from steganography.decode import create_processes
+from steganography.exceptions import HeaderKey, InterleaveError
 
 
 def text_from_bits(bits, encoding='utf-8', errors='surrogatepass'):
@@ -19,31 +20,59 @@ def get_args():
     parser.add_argument('-f', '--file', dest='fn_img', required=True, help='input img')
     parser.add_argument("-n", dest="size", type=int, metavar="SIZE",
                         required=True, help="Tamaño del bloque de bytes")
-    parser.add_argument('-o', '--offset', dest='offset', required=False, help='offset', default=0)
-    parser.add_argument('-i', '--interleave', dest='interleave', required=False, help='interleave', default=0)
+    parser.add_argument('-o', '--offset', dest='offset', required=False, help='offset', default=-1)
+    parser.add_argument('-i', '--interleave', dest='interleave', required=False, help='interleave', default=-1)
+    parser.add_argument('-l', dest='L', required=False, help='msg size', default=-1)
+
     return parser.parse_args()
+
+
+def send_r(fd, size, conns):
+    stopped = [0, 0, 0]
+    msg = ["", "", ""]
+    while not (stopped[0] and stopped[1] and stopped[2]):
+        read = os.read(fd, size)
+        for i in range(3):
+            if not stopped[i]:
+                try:
+                    conns[i].send(read)
+                except:
+                    if i == 2:
+                        break
+        for i in range(3):
+            if not stopped[i]:
+                if conns[i].poll():
+                    byte = conns[i].recv()
+                    if byte != 'stop':
+                        msg[i] += byte
+                    else:
+                        stopped[i] = 1
+    return msg
 
 
 if __name__ == '__main__':
     start = time.time()
     args = get_args()
-    fd = os.open(args.fn_img, os.O_RDONLY)
-    header_info = get_header_info(args.fn_img, args.offset, args.interleave)
-    processes, conns = create_processes(args.fn_img, header_info[2], header_info[3], header_info[4])
-    header = os.read(fd, header_info[0])
-    flag = 1
-    while flag:
-        read = os.read(fd, args.size)
-        for i in range(3):
-            try:
-                conns[i].send(read)
-            except BrokenPipeError:
-                flag = 0
-    msg = ''
-    for i in range(3):
-        msg += conns[i].recv()
-    print("benchmark: ", time.time() - start)
-    print('mensaje:')
-    print('#######################################################')
-    print(text_from_bits(msg))
-    print('#######################################################')
+    try:
+        fd = os.open(args.fn_img, os.O_RDONLY)
+        header_info = get_header_info(args.fn_img, args.offset, args.interleave, args.L)
+        
+        processes, conns = create_processes(args.fn_img, header_info[2], header_info[3], header_info[4])
+        header = os.read(fd, header_info[0])
+        msg = send_r(fd, args.size, conns)
+    except FileNotFoundError:
+        print("Error. No se ha encontrado imagen:", args.fn_img)
+    except MemoryError as exc:
+        print("Error de memoria")
+        for p in processes:
+            p.terminate()
+    except InterleaveError as exc:
+        print(exc)
+    except HeaderKey as exc:
+        print(exc)
+    else:
+        print("Terminado con exito en: ", time.time()-start, "segundos")
+        print('mensaje:')
+        print('#######################################################')
+        print(text_from_bits("".join(msg)))
+        print('#######################################################')
