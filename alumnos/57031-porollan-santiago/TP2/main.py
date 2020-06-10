@@ -112,10 +112,7 @@ if __name__ == '__main__':
     create_file(args.fn_img, args.fn_out, header_info[0], fd, header_info[2], header_info[3], header_info[4])
     processes, parent_conns = create_processes(args.fn_out, header_info, msg, L)
     # threading_and_sem()
-    print(msg)
     serie(fd, args.size)
     for p in processes:
         p.join()
     print("benchmark: ", time.time()-start)
-
-

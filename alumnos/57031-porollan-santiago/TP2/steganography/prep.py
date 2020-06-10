@@ -3,11 +3,14 @@
 def get_msg(filename):
     with open(filename, 'r') as fle:
         read = fle.read()
+    print("guardando mensaje:")
+    print('#######################################################')
+    print(read)
+    print('#######################################################')
+    read = "".join([format(ord(c), "08b") for c in read])
     L = len(read)
     size = L // 3
-    return ["".join([format(ord(c), "08b") for c in read[: size]]),
-            "".join([format(ord(c), "08b") for c in read[size: 2*size]]),
-            "".join([format(ord(c), "08b") for c in read[2*size:]])], L
+    return [read[: size], read[size: 2*size], read[2*size:]], L
 
 
 def convert_to_binary(s):
@@ -38,7 +41,6 @@ def get_header_info(filename, offset=0, interleave=0, L=0):
             offset = offset_interleave[0] if offset_interleave[0] else offset
             interleave = offset_interleave[1] if offset_interleave[1] else interleave
             L = offset_interleave[2] if offset_interleave[2] else L
-            print(offset_interleave, L, idx)
             return (idx, int(width), int(offset), int(interleave), int(L))
         if val == 35:
             ignore_line = 1
