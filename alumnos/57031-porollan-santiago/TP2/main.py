@@ -21,22 +21,6 @@ def get_args():
                         required=True, help="Valor del Interleave")
     return parser.parse_args()
 
-
-def send_data(x, conn, sem, semp):
-    # threading and sem
-    while True:
-        sem.acquire(1)
-        conn.send(read)
-        print("thread ", x, "read: ", read)
-        while 1:
-            try:
-                semp.release()
-            except ValueError:
-                pass
-            else:
-                break
-
-
 def send_data1(x, conn, read):
     conn.send(read)
     print("thread: ", x, "read: ", read)
@@ -71,15 +55,10 @@ def threading_and_sem():
         t.start()
         sems.append(nsem)
         sems_p.append(semp)
-    data = [x for x in range(1, 16000)]
-    ind = 0
     while read:
-        # read = os.read(fd, args.size)
-        try:
-            read = data[ind]
-        except:
-            break
-        ind += 1
+        read = os.read(fd, args.size)
+        if not read:
+            read = 'stop'
         for sem11 in sems:
             while 1:
                 try:
@@ -88,10 +67,25 @@ def threading_and_sem():
                     pass
                 else:
                     break
+        if read == 'stop':
+            break
         for sempp in sems_p:
             sempp.acquire()
-        print('######################')
 
+def send_data(x, conn, sem, semp):
+    # threading and sem
+    while True:
+        sem.acquire(1)
+        conn.send(read)
+        if read == 'stop':
+            break
+        while 1:
+            try:
+                semp.release()
+            except ValueError:
+                pass
+            else:
+                break
 
 def serie(fd, size):
     read = 1
@@ -115,6 +109,7 @@ if __name__ == '__main__':
         create_file(args.fn_img, args.fn_out, header_info[0], fd, header_info[2], header_info[3], header_info[4])
         processes, parent_conns = create_processes(args.fn_out, header_info, msg, L)
         serie(fd, args.size)
+        # threading_and_sem()
         for p in processes:
             p.join()
     except FileNotFoundError:
